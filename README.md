@@ -8,7 +8,7 @@ The human brain, with its complex networks and cognitive processes, remains a sc
 Our research focuses on analyzing these navigational choices and how they influence game outcomes. To make a more complete analysis we also move on to identify the critical factors that differentiate success from failure in the game setting other than user logic. By meticulously examining player paths and category selections, we gain insights into the cognitive patterns and strategies employed. 
 We additionnaly employ network analysis techniques to map the connections between specific categories of information. This allows us to not only understand player behavior in this game context but it makes mapping the proximity of specific categories in the brain space possible.
 
-### Research Questions :mag_book:
+### Research Questions :mag:
 
 * By analyzing the path choices of users can we conclude a general rule of behaviour ? 
 
@@ -20,7 +20,7 @@ We additionnaly employ network analysis techniques to map the connections betwee
 
 * What methods can we employ to visually represent these semantic connections and understandings? 
 
-### Methods :gears:
+### Methods :microscope:
 
 **I- Preprocessing**
 
@@ -55,7 +55,7 @@ In this final section, we will take a step back from the game difficulty and foc
 
 
 
-### Proposed timeline :hourglass_flowing_sand:
+### Proposed timeline :hourglass:
 
 22/11/2023: Part 1 and 2
 
@@ -69,7 +69,7 @@ In this final section, we will take a step back from the game difficulty and foc
 
 (Deadline: 22/12/2023)
 
-### Organization within the team :group:
+### Organization within the team :busts_in_silhouette:
 
 * Datastory: Everybody
 
