@@ -47,7 +47,11 @@ The previous process is meticulously repeated for two specific segments: the par
 
 **III- Key for success**
 
-The analysis made in the previous part showed that both finished and unfinshed paths have exactly the same pattern ; players initially navigate to an article with a high page rank score. Subsequently, they refine their strategy and direct their efforts towards their specific target article. This suggests that the difference between finished and unfinshed paths is not related to the starting point, since we always reach a hub starting from any article. the main difference lies in the final destination article, in this section we will try to analyse differences between the destinations of both finished and unfinished paths by comparing the distribution of their in-degrees,we will then analyze what influences the success or failure by building a success prediction model with the following features: target_rank : the page rank of the target page starting_rank the page rank of the starting page hub_rank: the page rank of the hub indegrees: number of ingoing edges num_of_games: number of played games.
+The analysis made in the previous part showed that both finished and unfinshed paths have exactly the same pattern ; players initially navigate to an article with a high page rank score. Subsequently, they refine their strategy and direct their efforts towards their specific target article. This suggests that the difference between finished and unfinshed paths is not related to the starting point, since we always reach a hub starting from any article. the main difference lies in the final destination article, in this section we will try to analyse differences between the destinations of both finished and unfinished paths by comparing the distribution of their in-degrees,we will then analyze what influences the success or failure by building a success prediction model with the following features : 
++ target_rank : the page rank of the target page
++ starting_rank the page rank of the starting page
++ hub_rank: the page rank of the hub indegrees: number of ingoing edges
++ num_of_games: number of played games.
 
 **IV- Deeper dive into Cognitive Mappings**
 
