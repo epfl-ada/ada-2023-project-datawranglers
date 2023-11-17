@@ -6,7 +6,11 @@ from collections import defaultdict
 from collections import Counter
 import seaborn as sns
 from typing import Callable, List
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
 
+############################################## Part 1 : auxiliary functions ##############################################
 def create_link_count_hist(links_count, bins, incoming=False):
     """
     This function creates and displays a histogram for the distribution of the number of links per article.
@@ -68,34 +72,6 @@ def get_top_articles_by_page_rank(page_rank, top_n=20):
 
 
 def remove_unvisited_pages(path):
-    if path.count('<') == 0:
-        return path
-    i=0
-    while i<len(path):
-        if path[i] == '<':
-            counter = 0
-            tmp_i = i
-            while tmp_i<len(path) and path[tmp_i] == '<':
-                tmp_i +=1
-                counter+=1
-            m=max(0,i-counter)
-
-            for j in range(m, i):
-                path[j] = '<'
-            i = tmp_i
-        else:
-            i+=1
-    indx = np.where(np.array(path)=='<')[0]
-    path = np.delete(np.array(path), indx)
-    return list(path)
-
-
-
-
-
-
-
-def remove_unvisited_pages(path):
     """
     Removes markers for unvisited pages from the path.
     
@@ -144,25 +120,41 @@ def remove_unvisited_pages(path):
     return list(path)
 
 
-
-
 def parse_and_clean_path(row):
+    """
+    Parses and cleans a path 
+    
+    Args:
+    row (str): the article path that needs to be parsed
+    
+    Returns:
+    list: the parsed path in list format
+    """
     path_split = row.split(';')
     path_split = remove_unvisited_pages(path_split)
     return path_split
 
 
 def pad_path(path_split,max_path_length = 407):
+    """
+    We pad the paths with zeros to allow comparison between aths with different lengths
+    """
     padding_length = max_path_length - len(path_split)
     return path_split + [0] * padding_length if padding_length > 0 else path_split
 
 
 def calculate_path_lengths(paths_df):
+    """
+    calculating the length of a path   
+    """
     paths_length = paths_df.apply(lambda x: (x != 0).sum(), axis=1)
     paths_df['length'] = paths_length
     return paths_length.value_counts()
 
 def plot_path_length_frequencies(frequencies):
+    """
+    computing the frequency of path lengths
+    """
     plt.bar(frequencies.index, frequencies.values)
     plt.xticks(rotation=90)
     plt.title('Paths having the same number of visited pages')
@@ -171,6 +163,9 @@ def plot_path_length_frequencies(frequencies):
     plt.xlim(0, 30)
     plt.show()
 
+############################################## End Part 1 : auxiliary functions ##############################################
+
+############################################## Part 2 : auxiliary functions ##############################################
 
 
 def plot_avg_page_rank_for_path_length(paths_df, path_length, ax):
@@ -264,9 +259,6 @@ def plot_top_categories_pie_chart(categories, values, colors, top_n=10):
     plt.title(f'Top {top_n} Categories of Top Articles in Page Rank')
     plt.legend(labels=categories_sorted[-top_n:], loc='center left', bbox_to_anchor=(1, 0.5))
     plt.show()
-
-
-
 
 
 
@@ -450,15 +442,11 @@ def plot_degree_distribution(finished_paths, unfinished_paths):
     plt.show()
 
 
-    
+############################################## End Part 2 : auxiliary functions ##############################################
 
-############################### Part 3 : classifier auxiliary functions ######################################## 
-    
-    
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
 
+############################### Part 3 : classifier auxiliary functions ##################################################### 
+  
 def compute_games_played(finished_paths, unfinished_paths):
     unique_ips = pd.concat([finished_paths["hashedIpAddress"], unfinished_paths["hashedIpAddress"]]).unique()
     dicti = {key: 0 for key in unique_ips}
