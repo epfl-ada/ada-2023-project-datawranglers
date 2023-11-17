@@ -24,7 +24,7 @@ def create_link_count_hist(links_count, bins, incoming=False):
     plt.figure(figsize=(10, 6))
     plt.hist(links_count, bins= bins, edgecolor='black')
     plt.title(f'Distribution of Number of {"Incoming" if incoming else "Outgoing"} Links per Article')
-    plt.xlabel('Number of Incoming Links')
+    plt.xlabel(f'Number of {"Incoming" if incoming else "Outgoing"} Links')
     plt.ylabel('Number of Articles')
     plt.xticks(bins)
     plt.grid(axis='y', alpha=0.75)
