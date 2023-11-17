@@ -28,7 +28,7 @@ We additionnaly employ network analysis techniques to map the connections betwee
 
 2) We move to cleaning the paths to remove the back clicks and the deleted paths which are not relevant for our study since they do not provide any significant information on the player’s reflexion nor on the recipe of success. 
 
-3) We uncover the category distribution on article giving us insights into how we should transform path of articles into paths of cateories to extract the most information about player reasoning.  
+3) We uncover the category distribution on article giving us insights into how we should transform path of articles into paths of categories to extract the most information about player reasoning.  
 
 
 **II- Uncovering player reasoning**
