@@ -55,7 +55,9 @@ The analysis made in the previous part showed that both finished and unfinshed p
 
 **IV- Deeper dive into Cognitive Mappings**
 
-In this final section, we will take a step back from the game difficulty and focus on analyzing further the cognitive connections between closely related categories. We will provide analysis for science-related categories, however note that this same procedure can be further generalized to other fields We focus on exploring the ‘Science’ category by considering completed paths where the destination is within the field of science. Each specific category encountered along these paths that is lying inside the general ‘Science’ category strengthens its link with the specific destination category. However, this reinforcement is proportional to the category's distance from the final destination. Specific categories closer to the final destination within the path receive higher similarity scores. This method results in constructing a matrix containing similarity scores between various categories solely within the realm of science.
+In this final section, we will take a step back from the game difficulty and focus on analyzing further the cognitive connections between closely related categories. We will provide analysis for science-related categories, however note that this same procedure can be further generalized to other fields. 
+
+We focus on exploring the ‘Science’ category by considering completed paths where the destination is within the field of science. Each specific category encountered along these paths that is lying inside the general ‘Science’ category strengthens its link with the specific destination category. However, this reinforcement is proportional to the category's distance from the final destination. Specific categories closer to the final destination within the path receive higher similarity scores. This method results in constructing a matrix containing similarity scores between various categories solely within the field of science.
 
 
 
