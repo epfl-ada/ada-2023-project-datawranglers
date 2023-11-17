@@ -1,14 +1,14 @@
 # Ada-2023-project-datawranglers
 ## Navigating the Maze of Mind: Analyzing Player Behavior and Cognitive Patterns in the Wikispeedia Game 🧠
 
-### ABSTRACT
+### ABSTRACT :thought_balloon:
 
 The human brain, with its complex networks and cognitive processes, remains a scientific mystery. In our quest to uncovering those details, we turn to an innovative approach: analyzing player behavior in the Wikispeedia game. TThe game where players move through Wikipedia articles to reach a goal helps us study how people process new information and make quick decisions, giving us a closer look into the most intuitive conenctions in their brain.
 
 Our research focuses on analyzing these navigational choices and how they influence game outcomes. To make a more complete analysis we also move on to identify the critical factors that differentiate success from failure in the game setting other than user logic. By meticulously examining player paths and category selections, we gain insights into the cognitive patterns and strategies employed. 
 We additionnaly employ network analysis techniques to map the connections between specific categories of information. This allows us to not only understand player behavior in this game context but it makes mapping the proximity of specific categories in the brain space possible.
 
-### Research Questions 
+### Research Questions :mag_book:
 
 * By analyzing the path choices of users can we conclude a general rule of behaviour ? 
 
@@ -20,7 +20,7 @@ We additionnaly employ network analysis techniques to map the connections betwee
 
 * What methods can we employ to visually represent these semantic connections and understandings? 
 
-### Methods 
+### Methods :gears:
 
 **I- Preprocessing**
 
@@ -55,21 +55,21 @@ In this final section, we will take a step back from the game difficulty and foc
 
 
 
-### Proposed timeline
+### Proposed timeline :hourglass_flowing_sand:
 
-22/11/2023: Part 1
+22/11/2023: Part 1 and 2
 
-29/11/2023: Part 2
+29/11/2023: Part 3 and 4
 
-06/12/2023: Part 3
+06/12/2023: Write Story and Create initial Website 
 
-13/12/2023: Part 4
+13/12/2023: Finalization of the Website
 
-20/12/2023: Write the story and review
+20/12/2023: Review
 
-(deadline: 22/12/2023)
+(Deadline: 22/12/2023)
 
-### Organization within the team
+### Organization within the team :group:
 
 * Datastory: Everybody
 
