@@ -9,9 +9,10 @@ from typing import Callable, List
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report
+import plotly.graph_objects as go
 
 ############################################## Part 1 : auxiliary functions ##############################################
-def create_link_count_hist(links_count, bins, incoming=False):
+def create_link_count_hist(links_count, bins, incoming=False, html_filename='plot.html'):
     """
     This function creates and displays a histogram for the distribution of the number of links per article.
 
@@ -25,14 +26,18 @@ def create_link_count_hist(links_count, bins, incoming=False):
     Returns:
     None: This function does not return anything. It displays a histogram plot.
     """
-    plt.figure(figsize=(10, 6))
-    plt.hist(links_count, bins= bins, edgecolor='black')
-    plt.title(f'Distribution of Number of {"Incoming" if incoming else "Outgoing"} Links per Article')
-    plt.xlabel(f'Number of {"Incoming" if incoming else "Outgoing"} Links')
-    plt.ylabel('Number of Articles')
-    plt.xticks(bins)
-    plt.grid(axis='y', alpha=0.75)
-    plt.show()
+    fig = go.Figure(data=[go.Histogram(x=links_count, xbins=dict(start=min(bins), end=max(bins), size=(max(bins) - min(bins)) / len(bins)))])
+    fig.update_layout(
+        title=f'Distribution of Number of {"Incoming" if incoming else "Outgoing"} Links per Article',
+        xaxis_title=f'Number of {"Incoming" if incoming else "Outgoing"} Links',
+        yaxis_title='Number of Articles'
+    )
+
+    # Display in notebook
+    fig.show()
+
+    # Save as HTML
+    fig.write_html(html_filename)
 
     
 def get_top_articles_by_page_rank(page_rank, top_n=20):
@@ -151,17 +156,21 @@ def calculate_path_lengths(paths_df):
     paths_df['length'] = paths_length
     return paths_length.value_counts()
 
-def plot_path_length_frequencies(frequencies):
-    """
-    computing the frequency of path lengths
-    """
-    plt.bar(frequencies.index, frequencies.values)
-    plt.xticks(rotation=90)
-    plt.title('Paths having the same number of visited pages')
-    plt.ylabel('# Paths')
-    plt.xlabel('Path Length')
-    plt.xlim(0, 30)
-    plt.show()
+
+def plot_path_length_frequencies(frequencies, html_filename):
+    # Create Plotly figure
+    fig = go.Figure(data=[go.Bar(x=frequencies.index, y=frequencies.values)])
+    fig.update_layout(
+        title='Paths having the same number of visited pages',
+        xaxis=dict(title='Path Length', range=[0, 30], tickangle=90),
+        yaxis=dict(title='# Paths')
+    )
+
+    # Display in notebook
+    fig.show()
+
+    # Save as HTML
+    fig.write_html(html_filename)
 
 ############################################## End Part 1 : auxiliary functions ##############################################
 
@@ -221,9 +230,9 @@ def plot_categories_frequencies(df, column_name):
     sns.barplot(x=freq.index, y=freq.values, width=0.8)
     plt.xticks(rotation=90, fontsize=7)
     plt.title('Number of articles per category')
-    plt.ylabel('# of articles')
+    plt.ylabel('Number of articles')
     plt.show()
-    
+
 
 def count_periods(s):
     """
