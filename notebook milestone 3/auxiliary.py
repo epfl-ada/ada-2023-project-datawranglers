@@ -9,9 +9,6 @@ from typing import Callable, List
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report
-import plotly.graph_objects as go
-import plotly.express as px
-
 
 ############################################## Part 1 : auxiliary functions ##############################################
 def create_link_count_hist(links_count, bins, incoming=False):
@@ -36,7 +33,6 @@ def create_link_count_hist(links_count, bins, incoming=False):
     plt.xticks(bins)
     plt.grid(axis='y', alpha=0.75)
     plt.show()
-
 
     
 def get_top_articles_by_page_rank(page_rank, top_n=20):
@@ -155,7 +151,6 @@ def calculate_path_lengths(paths_df):
     paths_df['length'] = paths_length
     return paths_length.value_counts()
 
-
 def plot_path_length_frequencies(frequencies):
     """
     computing the frequency of path lengths
@@ -167,7 +162,6 @@ def plot_path_length_frequencies(frequencies):
     plt.xlabel('Path Length')
     plt.xlim(0, 30)
     plt.show()
-
 
 ############################################## End Part 1 : auxiliary functions ##############################################
 
@@ -205,6 +199,7 @@ def plot_avg_page_rank_for_path_length(paths_df, path_length, ax):
     ax.set_ylabel('Average Page Rank', fontsize=8)
     ax.set_title(f'Average Page Rank for Paths of Length {path_length}')
 
+
 def plot_categories_frequencies(df, column_name):
     """
     Plots the frequency of each unique value in the specified column of the DataFrame.
@@ -228,7 +223,7 @@ def plot_categories_frequencies(df, column_name):
     plt.title('Number of articles per category')
     plt.ylabel('# of articles')
     plt.show()
-
+    
 
 def count_periods(s):
     """
@@ -308,6 +303,15 @@ def process_paths_on_rank(paths, page_rank ,upPath = True) :
     return processed_paths, pages_with_no_rank
 
 
+def extract_downpath(path,page_rank):
+    path_split = path.split(';')
+    path_split = remove_unvisited_pages(path_split)
+    ranks = []
+    for elem in path_split:
+        r = page_rank.get(elem, -1)
+        ranks.append(r)
+    return path_split[np.argmax(ranks) :]
+
 
 def build_category_connections(category_paths) :
     """
@@ -381,16 +385,26 @@ def heatmap_general_categories(category_connections) :
     for ind1,row1 in df.iterrows() :
         for value in prev_list :
             final_df.loc[ind1.split('.')[1],value.split('.')[1]] =  final_df.loc[ind1.split('.')[1],value.split('.')[1]] + row1[value]
+      
     # Replacing diagonal elements with 0
+    
     rows, cols = final_df.shape
     for i in range(rows):
-        final_df.iloc[i, i] = 0        
+        final_df.iloc[i, i] = 0  
+    
+    
+        
+    for ind, row in final_df.iterrows():
+        max = row.max()
+        final_df.loc[ind]=(final_df.loc[ind])*100./max
+            
+      
     
 
-    final_df = final_df.div(final_df.sum(axis=1), axis=0)    
+    #final_df = final_df.div(final_df.sum(axis=1), axis=0)    
     #plotting the heatmap
     plt.figure(figsize=(10, 8))
-    sns.heatmap(final_df, annot=True, fmt='.2f', cmap="YlGnBu", cbar=True)
+    sns.heatmap(final_df, annot=False, fmt='.2f', cmap="YlGnBu", cbar=True)
     plt.title('Heatmap of Weights between Categories')
     plt.show()   
     return final_df
@@ -537,232 +551,239 @@ def associate_targets_and_starting_points_with_ranks(targets, starting_points, p
 ############################### End Part 3 auxiliary functions ######################################## 
 
 ############################### Part 4 :  auxiliary functions ######################################### 
+from matplotlib.colors import Normalize
+from sklearn.manifold import MDS
 
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
+def category_selection_from_mult(df, specific_categories, cat):
+    df_mult = df.copy()
+    
+    # Filter the dataframe to keep only the paths that aim at the specified category
+    df_mult["specific_categ"] = [specific_categories.loc[t[-1], 'category'] if t[-1] in specific_categories.index else 'Unknown_Category'  for t in df_mult["path"]]    
+    df_mult = df_mult[df_mult["specific_categ"] == cat]
+    print("There are ",df_mult.shape[0]," targets of this specific category")
+    
+    # Sort the dataframe according to the timestamp
+    df_mult = df_mult.sort_values(["timestamp"])
+    
+    # Store the number of clicks in each path
+    df_mult['number_clicks'] = df_mult['path'].apply(lambda x: len(x)-1)
+    
+    return df_mult
 
-def find_science_category(categories, article):
-    """
-    Finds the science category for a given article.
-    """
-    p = categories[categories["article"] == article]
-    if p.shape[0] == 0:
-        return "null"
+def dividing_df_mult(df, specific_categories, cat):
+    df_mult = df.copy()
+
+    # Divide the dataframe in two parts: 
+    #      * The first quarter of the attempts of each player is considered as the training part
+    #      * The second half of the attempts of each player is taken as the paths where the player has learned 
+
+    fraction = 1/4
+    df_mult_start = df_mult.groupby('hashedIpAddress').apply(lambda x: x.head(int(len(x)*fraction))).reset_index(drop=True)
+    df_mult_end = df_mult.groupby('hashedIpAddress').apply(lambda x: x.tail(int(len(x)*fraction*2))).reset_index(drop=True)
+    
+    # Filter the dataframes --> take only the specific category that corresponds to cat
+    df_start = category_selection_from_mult(df_mult_start, specific_categories, cat)
+    df_end = category_selection_from_mult(df_mult_end, specific_categories, cat)
+
+    # Balance the data
+    min_size = min(df_start.shape[0],df_end.shape[0])
+    df_start = df_start.head(min_size)
+    df_end = df_end.head(min_size)
+
+    print("After reshaping, there are", df_start.shape[0]," targets of the specific category", cat)
+    print("After reshaping, there are", df_end.shape[0]," targets of the specific category", cat)
+
+    return df_start,df_end
+
+def dividing_df_compare_fin_unfin(df_fin, df_un, specific_categories, cat):
+    df_mult_start = df_fin.copy()
+    df_mult_end = df_un.copy()
+    
+    # Filter the dataframes --> take only the genral category that corresponds to cat
+    df_start = category_selection_from_mult(df_mult_start, specific_categories, cat)
+    df_end = category_selection_from_mult(df_mult_end, specific_categories, cat)
+
+    # Balance the data
+    min_size = min(df_start.shape[0],df_end.shape[0])
+    df_start = df_start.head(min_size)
+    df_end = df_end.tail(min_size)
+
+    print("After reshaping, there are", df_start.shape[0]," targets of the specific category", cat)
+    print("After reshaping, there are", df_end.shape[0]," targets of the specific category", cat)
+    
+    return df_start,df_end
+    
+
+def weighting_links(df, specific_categories):
+    df_mult_graph = df.copy()
+    df_mult_graph['time_per_click'] = df_mult_graph['durationInSec']/df_mult_graph['number_clicks']
+    df_mult_graph['path'] =  df_mult_graph['path'].apply(lambda x: [specific_categories.loc[elem, 'category'].split('.')[-1] if elem in specific_categories.index else 'Unknown_Category' for elem in x])
+    dict_edges={}
+    for _,elem in df_mult_graph.iterrows():
+        p = elem['path']
+        count = elem['number_clicks']
+        t = elem['time_per_click'] 
+        for i in range(1,len(p)):
+            # Check if node1 exists in list_edges, if not, create it
+            node1 = p[i-1]
+            if node1 not in dict_edges:
+                dict_edges[node1] = {}
+            node2 = p[i]
+            # Check if node2 exists as a key in the dictionary corresponding to node1, if not, create it
+            if node2 not in dict_edges[node1]:
+                dict_edges[node1][node2] = 0  # Initialize edge weight
+            dict_edges[node1][node2] += ((i/count)*1/t)
+
+    all_weights = [weight for edge in dict_edges.values() for weight in edge.values()]
+
+    threshold = pd.Series(all_weights).quantile(0.5) # Define your threshold here
+
+    # Filter nodes based on threshold
+    filtered_edges = {k: {k1: v1 for k1, v1 in v.items() if v1 >= threshold} for k, v in dict_edges.items() if any(val >= threshold for val in v.values())}
+
+    # Conversion of weights to distances
+    for source, targets in filtered_edges.items():
+        for target, weight in targets.items():
+            filtered_edges[source][target] = abs(np.log(1/(2*weight)))
+    return filtered_edges
+
+def study_weights(dict):
+    all_weights = [weight for edge in dict.values() for weight in edge.values()]
+    print("mean  ",np.mean(all_weights))
+    print("std  ",np.std(all_weights))
+    # Plotting the histogram
+    plt.hist(all_weights, bins=30, color='skyblue', edgecolor='black')  # Adjust the number of bins as needed
+    plt.xlabel('Values')
+    plt.ylabel('Frequency')
+    plt.title('Histogram')
+    plt.grid(True)
+    plt.show()
+
+def nodes_positioning(df, specific_categories):
+    filtered_edges = weighting_links(df,specific_categories)
+    # Extract nodes from distances_dict
+    nodes = set(filtered_edges.keys())
+
+    # Create an empty graph
+    G = nx.Graph()
+
+    # Add nodes to the graph
+    G.add_nodes_from(nodes)
+
+    # Initialize default distance for non-connected nodes
+    default_distance = 100.0  # You can adjust this default distance value
+
+    # Create a matrix of pairwise distances with default distance for non-connected nodes
+    num_nodes = len(nodes)
+    distance_matrix = np.full((num_nodes, num_nodes), default_distance)
+    for i, node1 in enumerate(nodes):
+        for j, node2 in enumerate(nodes):
+            if j > i:
+                d = np.min([filtered_edges.get(node1, {}).get(node2, filtered_edges.get(node2, {}).get(node1, default_distance)), filtered_edges.get(node1, {}).get(node2, filtered_edges.get(node1, {}).get(node2, default_distance))])
+                distance_matrix[i][j] = d
+                distance_matrix[j][i] = d
+
+    # Initialize and fit the MDS model
+    mds = MDS(n_components=2, dissimilarity='precomputed', random_state=42)
+    node_positions = mds.fit_transform(distance_matrix)
+
+    # Create a dictionary of positions for each node
+    pos = {node: (node_positions[i, 0], node_positions[i, 1]) for i, node in enumerate(nodes)}
+    return pos
+
+def distance_from_target(df, specific_categories, central_point):
+    pos = nodes_positioning(df, specific_categories)
+
+    # Calculate distances from central_node to other nodes
+    distances_to_C = {node: np.linalg.norm(np.array(pos[node]) - np.array(pos[central_point])) for node in pos if node != central_point}
+
+    # Sort nodes by their distance to central_node
+    sorted_nodes_by_distance = sorted(distances_to_C.keys(), key=lambda x: distances_to_C[x])
+
+    # Get the list of distances
+    distances_list = [distances_to_C[node] for node in sorted_nodes_by_distance]
+
+    # Create scatter plot data
+    x_values = [pos[node][0] for node in sorted_nodes_by_distance]
+    y_values = [pos[node][1] for node in sorted_nodes_by_distance]
+    
+    central_position = pos[central_point]
+
+    return [distances_list, x_values, y_values, central_position]
+
+
+def plot_distance_from_target(df, specific_categories, cat, compare_training = True, df_mult_unfinished=None):
+    if not compare_training:
+        df_start, df_end = dividing_df_compare_fin_unfin(df, df_mult_unfinished, specific_categories, cat)
     else:
-        for s in p["category"].values:
-            if s.split(".")[1] == "Science":
-                return s
-        return "null"
+        df_start, df_end = dividing_df_mult(df, specific_categories, cat)
 
-def filter_science_paths(paths, specific_categories):
-    """
-    Filters and processes paths for science-related articles.
-    """
-    paths["specific_categ"] = [specific_categories.loc[t.split(";")[-1], 'category'] if t.split(";")[-1] in specific_categories.index else 'Unknown_Category' for t in paths["path"]]
-    paths["general_categ"] = [t.split(".")[1] if t != "Unknown_Category" else "Unknown_Category" for t in paths["specific_categ"]]
-    return paths[paths["general_categ"] == "Science"]
-
-def compute_similarity_matrix(paths, categories):
-    """
-    Computes the similarity matrix for science categories.
-    """
-    unique_science_features = np.unique(paths["specific_categ"].values)
-    data_frame_science = pd.DataFrame(index=unique_science_features, columns=unique_science_features)
-    data_frame_science = data_frame_science.fillna(0)
-
-    for ind, row in paths.iterrows():
-        list_path = row["path"].split(";")
-        length = len(list_path)
-        iteri = 0
-        for l in list_path : 
-            iteri+=1
-            categ = find_science_category(categories, l)
-            if categ == "null" : 
-                continue 
-            else : 
-                data_frame_science.loc[row["specific_categ"],categ] +=1*iteri*1.0/length
-        iteri=0
-
-    rows, cols = data_frame_science.shape      
-    for i in range(rows):
-        data_frame_science.iloc[i, i] = 0 
+    central_point = cat.split('.')[-1]
+    [d_start, x_start, y_start,central_start] = distance_from_target(df_start, specific_categories, central_point)
+    [d_end, x_end, y_end, central_end] = distance_from_target(df_end, specific_categories, central_point)
     
-    return data_frame_science
+    # Determine the overall min and max values for normalization
+    min_val = min(min(d_start), min(d_end))
+    max_val = max(max(d_start), max(d_end))
 
-def create_graph(data_frame_science):
-    """
-    Creates a graph from the similarity matrix.
-    """
-    G = nx.from_pandas_adjacency(data_frame_science, create_using=nx.DiGraph())
-    G = nx.relabel_nodes(G, lambda x: x.replace('subject.Science', ''))
-    return G
+    # Normalize colors based on the overall min and max values
+    norm = Normalize(vmin=min_val, vmax=max_val)
 
-def find_top_related(G, top_n=3):
-    """
-    Finds top N related categories for each node in the graph.
-    """
-    top_related = {}
-    for node in G.nodes():
-        neighbors = G[node]
-        top_related[node] = sorted(neighbors, key=lambda x: neighbors[x]['weight'], reverse=True)[:top_n]
-    return top_related
+    # Invert the colormap 'coolwarm' to have blue for close and red for far
+    plt_cm = plt.cm.get_cmap('coolwarm')
+    new_cmap = plt_cm.reversed()
 
-def create_adjusted_pos_graph(G, top_related):
-    """
-    Creates a graph with adjusted positions for better visualization.
-    """
-    pos = nx.kamada_kawai_layout(G)
-    adjusted_pos = adjust_label_pos(pos)
-    G_top_3 = nx.DiGraph()
+    # Create a figure and subplots with a horizontal layout (1 row, 2 columns)
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5), gridspec_kw={'width_ratios': [0.1, 0.1]})
 
-    for node, related_nodes in top_related.items():
-        for related_node in related_nodes:
-            if (node, related_node) in G.edges():
-                weight = G.get_edge_data(node, related_node)['weight']
-                G_top_3.add_edge(node, related_node, weight=weight)
+    # Plotting data in the first panel (left)
+    ax[0].scatter(x_start, y_start, c=d_start, cmap=new_cmap, s=500, edgecolor='black',norm = norm)
+        # Add labels to nodes
+
+    # Plot the central point separately with a distinct color
+    ax[0].scatter(central_start[0], central_start[1], color='yellow', s=500, edgecolor='black', marker='*')
+    ax[0].text(central_start[0], central_start[1], central_point, ha='center', va='center', color='black', fontsize=8)
     
-    return G_top_3, adjusted_pos
+    if compare_training:
+        ax[0].set_title('Before training')
+    else: 
+        ax[0].set_title('Finished Paths')
+    ax[0].set_xlabel('X-axis')
+    ax[0].set_ylabel('Y-axis')
 
+    # Plotting data in the second panel (right)
+    scatter_end = ax[1].scatter(x_end, y_end, c=d_end, cmap=new_cmap, s=500, edgecolor='black', norm = norm)
 
+    # Plot the central point separately with a distinct color
+    ax[1].scatter(central_end[0], central_end[1], color='yellow', s=500, edgecolor='black', marker='*')
+    
 
-def adjust_label_pos(pos, x_shift=0.01, y_shift=0.01):
-    """
-    Adjusts label positions in the graph.
-    """
-    pos_higher = {}
-    for key, value in pos.items():
-        x, y = value
-        pos_higher[key] = (x + np.random.uniform(-x_shift, x_shift), 
-                           y + np.random.uniform(-y_shift, y_shift))
-    return pos_higher
+    ax[1].text(central_end[0], central_end[1], central_point, ha='center', va='center', color='black', fontsize=8)
+    if compare_training:
+        ax[0].set_title('After training')
+    else: 
+        ax[0].set_title('Unfinished Paths')
+    ax[1].set_xlabel('X-axis')
+    ax[1].set_ylabel('Y-axis')
 
-def perform_clustering_and_plotting(df_dict):
-    """
-    Performs clustering on the data and plots the results.
-    """
-    labels = df_dict.index
-    scaler = StandardScaler()
-    df_scaled = scaler.fit_transform(df_dict)
+    # Create an axis for the colorbar and position it between the subplots
+    cbar_ax = fig.add_axes([0.25, -0.05, 0.5, 0.05])  # Adjust these values for desired positioning
+    plt.colorbar(scatter_end, cax=cbar_ax, orientation='horizontal', label='Distance to Central Point', norm=norm)
 
-    kmeans = KMeans(n_clusters=5, random_state=42)
-    kmeans.fit(df_scaled)
+    # Adjust layout spacing between subplots
+    plt.tight_layout()
 
-    cluster_labels = kmeans.labels_
-    centroids = kmeans.cluster_centers_
-
-    plot_clusters(df_scaled, cluster_labels, kmeans, centroids, labels)
-
-def plot_clusters(df_scaled, cluster_labels, kmeans, centroids, labels):
-    """
-    Plots the clustered data.
-    """
-    plt.figure(figsize=(12, 10))
-    colors = [(1,0,0,1),(0,0,1,1),(0,1,0,1),(1,1,0,1),(0.5,0.5,0.5,1)]
-    colored = [colors[label] for label in cluster_labels]
-
-    x_min, x_max = df_scaled[:, 0].min() - 1, df_scaled[:, 0].max() + 1
-    y_min, y_max = df_scaled[:, 1].min() - 1, df_scaled[:, 1].max() + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01), np.arange(y_min, y_max, 0.01))
-    Z = kmeans.predict(np.c_[xx.ravel(), yy.ravel()])
-    Z = Z.reshape(xx.shape)
-    plt.contourf(xx, yy, Z, levels=np.arange(-0.5, max(cluster_labels)+1.5), alpha=0.1, colors=colors)
-
-    for i, label in enumerate(labels):
-        plt.scatter(df_scaled[i, 0], df_scaled[i, 1], color=colored[i])
-        adjust_text_position(df_scaled, i, labels)
-
-    plt.scatter(centroids[:, 0], centroids[:, 1], c='red', marker='X', s=100)
-    plt.title('K-means Clustering with Cluster Regions and Labels')
+    # Show the plot
     plt.show()
 
-def adjust_text_position(df_scaled, index, labels):
-    """
-    Adjusts the text position for better readability.
-    """
-    y_offset = 0.08
-    for j in range(index+1, len(labels)):
-        if abs(df_scaled[index, 1] - df_scaled[j, 1]) < 0.03 and abs(df_scaled[index, 0] - df_scaled[j, 0]) < .9 or abs(df_scaled[index, 1] - df_scaled[j, 1]) < 0.2 and abs(df_scaled[index, 0] - df_scaled[j, 0]) < .2:
-            y_offset = -0.12
-    plt.text(df_scaled[index, 0] - 0.5, df_scaled[index, 1]+y_offset, labels[index], fontsize=9)
-    
-    
-def kmeans_clustering_and_plot(df_dict):
-    # Correcting the legend to match the colors of the clusters
-
-    # Re-running the entire clustering and plotting process with corrected legend
-
-    # Convert the data into a DataFrame
-    labels = df_dict.index  # Save the labels
-
-    # Standardize the features
-    scaler = StandardScaler()
-    df_scaled = scaler.fit_transform(df_dict)
-
-    # Perform k-means clustering
-    kmeans = KMeans(n_clusters=5, random_state=42)
-    kmeans.fit(df_scaled)
-
-    # Cluster labels and centroids
-    cluster_labels = kmeans.labels_
-    centroids = kmeans.cluster_centers_
-
-    # Plotting the results with cluster regions
-    plt.figure(figsize=(12, 10))
-
-    # Colors for the clusters
-    colors = [(1,0,0,1),(0,0,1,1),(0,1,0,1),(1,1,0,1),(0.5,0.5,0.5,1)]
-    #colors = ['blue', 'green', 'yellow', 'red']
-    colored = [colors[label] for label in cluster_labels]
-
-    # Plot each cluster region
-    x_min, x_max = df_scaled[:, 0].min() - 1, df_scaled[:, 0].max() + 1
-    y_min, y_max = df_scaled[:, 1].min() - 1, df_scaled[:, 1].max() + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01), np.arange(y_min, y_max, 0.01))
-    Z = kmeans.predict(np.c_[xx.ravel(), yy.ravel()])
-    Z = Z.reshape(xx.shape)
-    plt.contourf(xx, yy, Z,  levels=np.arange(-0.5, max(cluster_labels)+1.5), alpha=0.1,colors=colors)
-
-
-    # Plot data points and label them with the keys from the dictionary
-    labels_modif = labels.copy()
-    for i, label in enumerate(labels):
-        plt.scatter(df_scaled[i, 0], df_scaled[i, 1], color=colored[i])
-        y_offset = 0.08  # Default offset
-
-        # Check proximity to other points
-        for j in range(i+1,len(labels)):
-
-            # If points are close both vertically and horizontally
-            if abs(df_scaled[i, 1] - df_scaled[j, 1]) < 0.03 and abs(df_scaled[i, 0] - df_scaled[j, 0]) < .9 or abs(df_scaled[i, 1] - df_scaled[j, 1]) < 0.2 and abs(df_scaled[i, 0] - df_scaled[j, 0]) < .2:
-                y_offset = -0.12  # Adjust y-offset
-
-        plt.text(df_scaled[i, 0] - 0.5, df_scaled[i, 1]+y_offset, label, fontsize=9)  # Offset text for clarity
-
-    # Plot centroids
-    plt.scatter(centroids[:, 0], centroids[:, 1], c='red', marker='X', s=100)
-    plt.title('K-means Clustering with Cluster Regions and Labels')
-    plt.show()
-    
 ############################### End Part 4 :  auxiliary functions ######################################### 
 
 
-
-
-def calculate_path_lengths(paths_df):
-    """
-    calculating the length of a path   
-    """
-    paths_length = paths_df.apply(lambda x: (x != 0).sum(), axis=1)
-    paths_df['length'] = paths_length
-    return paths_length.value_counts()
-
-
-
-def extract_downpath(path,page_rank):
-    path_split = path.split(';')
-    path_split = remove_unvisited_pages(path_split)
-    ranks = []
-    for elem in path_split:
-        r = page_rank.get(elem, -1)
-        ranks.append(r)
-    return path_split[np.argmax(ranks) :]
+############################### Case study #############################
+def case_study_preprocessing(case_study, cat):
+    df_case_study = case_study.copy().dropna()
+    df_case_study = df_case_study[df_case_study["general_categ"] == cat]
+    df_case_study = df_case_study[(df_case_study['durationInSec'] < df_case_study.durationInSec.quantile(0.95))\
+                                  & (df_case_study['num_clicks'] < df_case_study['num_clicks'].quantile(0.95)) ]
+    df_case_study['time_per_click'] = df_case_study['durationInSec'] / df_case_study['num_clicks']
+    return df_case_study
